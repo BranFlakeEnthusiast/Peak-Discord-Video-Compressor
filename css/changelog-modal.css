@@ -45,6 +45,40 @@
   color: white;
 }
 
+.changelog-header-info {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  margin-right: 6px;
+}
+
+.changelog-github-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+  white-space: nowrap;
+}
+.changelog-github-btn:hover {
+  background: rgba(88, 101, 242, 0.15);
+  border-color: rgba(88, 101, 242, 0.4);
+  color: var(--brand);
+}
+.changelog-github-btn svg {
+  flex-shrink: 0;
+}
+
 .changelog-close {
   width: 28px;
   height: 28px;
