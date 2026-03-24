@@ -22,6 +22,13 @@ window.addEventListener("load", async () => {
   initSlider("audioSlider", "audioVal", (v) => `${v} kbps`, 8, 320);
   initSlider("trimVol", null, null, 0, 1);
 
+  // Load persistent settings after sliders init
+  setTimeout(() => {
+    if (typeof loadSettings === "function") {
+      loadSettings();
+    }
+  }, 0);
+
   buildChangelog();
 
   const ok = await pywebview.api.check_ffmpeg();
