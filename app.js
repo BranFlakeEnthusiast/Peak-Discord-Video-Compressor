@@ -1,81 +1,20 @@
 // ════════════════════════════════════════
 // PEAK — Video Compressor  |  app.js
 // ════════════════════════════════════════
-
-// ── Changelog data ───────────────────────────────────────────────
-const CHANGELOG = [
-  {
-    version: "v1.4",
-    date: "2026-03-23",
-    latest: true,
-    changes: [
-      "Fixed video preview never playing in the trim modal (added local HTTP server with byte-range support)",
-      "Fixed CMD/terminal window flashing when opening the trim modal (missing CREATE_NO_WINDOW flag on ffprobe)",
-      "Fixed duration displaying 0:00 to -1:-1 before video metadata loads",
-      "Fixed Set In / Set Out row clipping outside the modal — inputs and buttons now use a 2-column grid",
-      "Fixed GPU tooltip clipping off the left edge of a narrow window",
-      "Queue items now have a minimum width and the list is horizontally scrollable",
-      "Responsive layout: vertical when narrow, horizontal (upload left / settings right) when the window is wide",
-      "Broke index.html into separate style.css and app.js files",
-      "Added this changelog",
-    ],
-  },
-  {
-    version: "v1.3",
-    date: "2026-03-22",
-    changes: [
-      "Added trim modal with embedded video preview and scrubber",
-      "Audio track selection per file (enable / disable individual tracks)",
-      "Timeline in/out handle drag for precise trimming",
-      "Volume control in transport bar",
-      "Trim badge shown on queue item when trim is active",
-    ],
-  },
-  {
-    version: "v1.2",
-    date: "2026-03-21",
-    changes: [
-      "Custom output folder support",
-      "GPU encoding toggle (NVIDIA NVENC)",
-      "Audio track merge toggle for multi-track source files",
-      "Output format dropdown: MP4, MKV, MOV, WebM (VP9)",
-      "Two-pass encoding mode for more accurate file size",
-    ],
-  },
-  {
-    version: "v1.1",
-    date: "2026-03-20",
-    changes: [
-      "Batch queue — add multiple files and compress sequentially",
-      "Thumbnail previews fetched from first frame of each file",
-      "Per-item progress bar with live ETA",
-      "Click compressed filename to open it in Explorer",
-    ],
-  },
-  {
-    version: "v1.0",
-    date: "2026-03-19",
-    changes: [
-      "Initial release",
-      "Drag-and-drop or file-browse to add videos",
-      "Target size and audio bitrate sliders",
-      "FFmpeg presence check on startup",
-    ],
-  },
-];
+// Changelog data is loaded from changelog.js
 
 // ── App state ─────────────────────────────────────────────────────
-let queue        = [];
-let isRunning    = false;
+let queue = [];
+let isRunning = false;
 let customOutDir = null;
-let idCounter    = 0;
+let idCounter = 0;
 let currentFormat = "mp4";
 const outputPaths = {};
 
 // ── Init ──────────────────────────────────────────────────────────
 window.addEventListener("load", async () => {
-  initSlider("sizeSlider",  "sizeVal",  v => `${v} MB`,   1,   200);
-  initSlider("audioSlider", "audioVal", v => `${v} kbps`, 8,   320);
+  initSlider("sizeSlider", "sizeVal", (v) => `${v} MB`, 1, 200);
+  initSlider("audioSlider", "audioVal", (v) => `${v} kbps`, 8, 320);
   initSlider("trimVol", null, null, 0, 1);
 
   buildChangelog();
@@ -97,7 +36,10 @@ function initSlider(id, labelId, fmt, min, max) {
       const pct = ((slider.value - min) / (max - min)) * 100;
       slider.style.setProperty("--val", pct + "%");
     }
-    if (labelId && fmt) document.getElementById(labelId).textContent = fmt(parseFloat(slider.value));
+    if (labelId && fmt)
+      document.getElementById(labelId).textContent = fmt(
+        parseFloat(slider.value),
+      );
   }
   slider.addEventListener("input", refresh);
   if (id === "trimVol") {
@@ -110,33 +52,42 @@ function initSlider(id, labelId, fmt, min, max) {
 }
 
 function resetSettings() {
-  document.getElementById("sizeSlider").value  = 10;
+  document.getElementById("sizeSlider").value = 10;
   document.getElementById("audioSlider").value = 128;
   document.getElementById("sizeSlider").dispatchEvent(new Event("input"));
   document.getElementById("audioSlider").dispatchEvent(new Event("input"));
-  document.getElementById("gpuToggle").checked          = false;
+  document.getElementById("gpuToggle").checked = false;
   document.getElementById("combineAudioToggle").checked = true;
-  document.getElementById("twoPassToggle").checked      = true;
+  document.getElementById("twoPassToggle").checked = true;
   selectFmt(document.querySelector('.fmt-option[data-value="mp4"]'));
-  document.getElementById("outputDirToggle").checked    = false;
+  document.getElementById("outputDirToggle").checked = false;
   document.getElementById("outputDirPicker").classList.remove("visible");
-  document.getElementById("outputDirSubtitle").textContent = "Off — saves next to source file";
+  document.getElementById("outputDirSubtitle").textContent =
+    "Off — saves next to source file";
   customOutDir = null;
 }
 
 // ── Toggles ───────────────────────────────────────────────────────
-function toggleCb(id) { document.getElementById(id).checked = !document.getElementById(id).checked; }
+function toggleCb(id) {
+  document.getElementById(id).checked = !document.getElementById(id).checked;
+}
 
 let _outputDirToggling = false;
 function toggleOutputDir() {
   if (_outputDirToggling) return;
   _outputDirToggling = true;
-  setTimeout(() => { _outputDirToggling = false; }, 50);
+  setTimeout(() => {
+    _outputDirToggling = false;
+  }, 50);
   const cb = document.getElementById("outputDirToggle");
   cb.checked = !cb.checked;
-  document.getElementById("outputDirPicker").classList.toggle("visible", cb.checked);
+  document
+    .getElementById("outputDirPicker")
+    .classList.toggle("visible", cb.checked);
   document.getElementById("outputDirSubtitle").textContent = cb.checked
-    ? (customOutDir ? shortPath(customOutDir) : "Select a folder below")
+    ? customOutDir
+      ? shortPath(customOutDir)
+      : "Select a folder below"
     : "Off — saves next to source file";
 }
 
@@ -158,7 +109,7 @@ function shortPath(p) {
 // ── Format dropdown ───────────────────────────────────────────────
 function toggleFmtMenu(e) {
   e.stopPropagation();
-  const btn  = document.getElementById("fmtBtn");
+  const btn = document.getElementById("fmtBtn");
   const menu = document.getElementById("fmtMenu");
   const open = menu.classList.toggle("open");
   btn.classList.toggle("open", open);
@@ -166,7 +117,9 @@ function toggleFmtMenu(e) {
 
 function selectFmt(el) {
   currentFormat = el.dataset.value;
-  document.querySelectorAll(".fmt-option").forEach(o => o.classList.remove("selected"));
+  document
+    .querySelectorAll(".fmt-option")
+    .forEach((o) => o.classList.remove("selected"));
   el.classList.add("selected");
   document.getElementById("fmtBtnLabel").textContent =
     currentFormat === "original" ? "Original" : currentFormat.toUpperCase();
@@ -187,63 +140,92 @@ async function browseFiles() {
 }
 
 const dz = document.getElementById("dropZone");
-dz.addEventListener("dragover",  e => { e.preventDefault(); dz.classList.add("hover"); });
-dz.addEventListener("dragleave", ()  => dz.classList.remove("hover"));
-dz.addEventListener("drop", e => {
-  e.preventDefault(); dz.classList.remove("hover");
+dz.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  dz.classList.add("hover");
+});
+dz.addEventListener("dragleave", () => dz.classList.remove("hover"));
+dz.addEventListener("drop", async (e) => {
+  e.preventDefault();
+  dz.classList.remove("hover");
   if (isRunning) return;
-  for (const f of Array.from(e.dataTransfer.files)) addToQueue(f.path || f.name);
+  const files = Array.from(e.dataTransfer.files);
+  for (const f of files) {
+    // f.path is available in some webview/Electron environments;
+    // fall back to pywebview API to resolve the full path from the filename.
+    let fullPath = f.path;
+    if (!fullPath || fullPath === f.name) {
+      try {
+        fullPath = await pywebview.api.resolve_dropped_path(f.name);
+      } catch (_) {
+        fullPath = f.name;
+      }
+    }
+    if (fullPath) addToQueue(fullPath);
+  }
 });
 
 // ── Queue management ──────────────────────────────────────────────
 function addToQueue(path) {
-  const id   = `qi-${++idCounter}`;
+  const id = `qi-${++idCounter}`;
   const name = path.split(/[/\\]/).pop();
   queue.push({
-    id, path, name,
-    status:        "waiting",
-    trimStart:     "",
-    trimEnd:       "",
+    id,
+    path,
+    name,
+    status: "waiting",
+    trimStart: "",
+    trimEnd: "",
     enabledTracks: null,
-    audioTracks:   [],
+    audioTracks: [],
   });
   renderQueueItem(id, name, path);
   updateCompressBtn();
 
-  pywebview.api.get_thumbnail(path).then(uri => {
+  pywebview.api.get_thumbnail(path).then((uri) => {
     const t = document.querySelector(`#${id} .qi-thumb`);
-    if (t) t.innerHTML = uri ? `<img src="${uri}" alt="" />` : thumbPlaceholder();
+    if (t)
+      t.innerHTML = uri ? `<img src="${uri}" alt="" />` : thumbPlaceholder();
   });
 }
 
 function removeFromQueue(id) {
-  queue = queue.filter(i => i.id !== id);
+  queue = queue.filter((i) => i.id !== id);
   document.getElementById(id)?.remove();
   updateQueueEmpty();
   updateCompressBtn();
 }
 
 function updateQueueEmpty() {
-  document.getElementById("queueEmpty").style.display = queue.length === 0 ? "flex" : "none";
+  document.getElementById("queueEmpty").style.display =
+    queue.length === 0 ? "flex" : "none";
 }
 
 function updateCompressBtn() {
-  const waiting = queue.filter(i => i.status === "waiting").length;
-  const btn     = document.getElementById("compressBtn");
-  const label   = document.getElementById("compressBtnLabel");
+  const waiting = queue.filter((i) => i.status === "waiting").length;
+  const btn = document.getElementById("compressBtn");
+  const label = document.getElementById("compressBtnLabel");
   updateQueueEmpty();
-  if (isRunning) { btn.disabled = true; label.textContent = "Compressing…"; return; }
-  btn.disabled      = waiting === 0;
-  label.textContent = waiting === 1 ? "Compress 1 file"
-                    : waiting > 1   ? `Compress ${waiting} files`
-                    : "Compress";
+  if (isRunning) {
+    btn.disabled = true;
+    label.textContent = "Compressing…";
+    return;
+  }
+  btn.disabled = waiting === 0;
+  label.textContent =
+    waiting === 1
+      ? "Compress 1 file"
+      : waiting > 1
+        ? `Compress ${waiting} files`
+        : "Compress";
 }
 
 function renderQueueItem(id, name, path) {
-  const wrap  = document.getElementById("queueWrap");
+  const wrap = document.getElementById("queueWrap");
   const empty = document.getElementById("queueEmpty");
-  const el    = document.createElement("div");
-  el.className = "qi"; el.id = id;
+  const el = document.createElement("div");
+  el.className = "qi";
+  el.id = id;
   el.innerHTML = `
     <div class="qi-main">
       <div class="qi-thumb"><div class="thumb-spinner"></div></div>
@@ -264,7 +246,7 @@ function renderQueueItem(id, name, path) {
 
 // ── Queue runner ──────────────────────────────────────────────────
 function startQueue() {
-  if (isRunning || !queue.some(i => i.status === "waiting")) return;
+  if (isRunning || !queue.some((i) => i.status === "waiting")) return;
   isRunning = true;
   document.getElementById("progressTrack").classList.add("visible");
   updateCompressBtn();
@@ -272,12 +254,15 @@ function startQueue() {
 }
 
 function processNext() {
-  const next = queue.find(i => i.status === "waiting");
+  const next = queue.find((i) => i.status === "waiting");
   if (!next) {
     isRunning = false;
     document.getElementById("progressTrack").classList.remove("visible");
-    const done = queue.filter(i => i.status === "done").length;
-    setStatus(`✓ Done — ${done} file${done !== 1 ? "s" : ""} compressed`, "success");
+    const done = queue.filter((i) => i.status === "done").length;
+    setStatus(
+      `✓ Done — ${done} file${done !== 1 ? "s" : ""} compressed`,
+      "success",
+    );
     updateCompressBtn();
     return;
   }
@@ -286,39 +271,46 @@ function processNext() {
   setStatus(`Compressing: ${next.name}`, "working");
 
   pywebview.api.compress(
-    next.id, next.path,
+    next.id,
+    next.path,
     parseInt(document.getElementById("sizeSlider").value),
     parseInt(document.getElementById("audioSlider").value),
     document.getElementById("gpuToggle").checked,
     document.getElementById("combineAudioToggle").checked,
     document.getElementById("twoPassToggle").checked,
-    document.getElementById("outputDirToggle").checked && customOutDir ? customOutDir : null,
+    document.getElementById("outputDirToggle").checked && customOutDir
+      ? customOutDir
+      : null,
     currentFormat,
     next.trimStart || "",
-    next.trimEnd   || "",
-    next.enabledTracks
+    next.trimEnd || "",
+    next.enabledTracks,
   );
 }
 
 // ── Item state renderers ──────────────────────────────────────────
 function setItemCompressing(id) {
   const sr = document.getElementById(`${id}-status`);
-  if (sr) sr.innerHTML = `
+  if (sr)
+    sr.innerHTML = `
     <span class="chip chip-pass1">Pass 1</span>
     <div class="qi-progress">
       <div class="qi-bar-track"><div class="qi-bar-fill" id="${id}-fill"></div></div>
       <span class="qi-eta" id="${id}-eta">Starting…</span>
     </div>`;
-  document.querySelectorAll(`#${id} .qi-btn`).forEach(b => b.disabled = true);
+  document
+    .querySelectorAll(`#${id} .qi-btn`)
+    .forEach((b) => (b.disabled = true));
 }
 
 function onItemProgress(id, progress, eta) {
-  const fill  = document.getElementById(`${id}-fill`);
+  const fill = document.getElementById(`${id}-fill`);
   const etaEl = document.getElementById(`${id}-eta`);
-  const main  = document.querySelector(`#${id} .qi-main`);
-  const chip  = document.querySelector(`#${id}-status .chip`);
-  if (fill)  fill.style.width = (progress * 100).toFixed(1) + "%";
-  if (main)  main.style.setProperty("--row-progress", (progress * 100).toFixed(1) + "%");
+  const main = document.querySelector(`#${id} .qi-main`);
+  const chip = document.querySelector(`#${id}-status .chip`);
+  if (fill) fill.style.width = (progress * 100).toFixed(1) + "%";
+  if (main)
+    main.style.setProperty("--row-progress", (progress * 100).toFixed(1) + "%");
   const twoPass = document.getElementById("twoPassToggle").checked;
   if (chip) {
     if (twoPass && progress < 0.5) {
@@ -326,13 +318,14 @@ function onItemProgress(id, progress, eta) {
       if (etaEl) etaEl.textContent = "Analyzing…";
     } else {
       chip.textContent = twoPass ? "Pass 2" : "Encoding";
-      if (etaEl) etaEl.textContent = eta !== null ? fmtEta(eta) : "Calculating…";
+      if (etaEl)
+        etaEl.textContent = eta !== null ? fmtEta(eta) : "Calculating…";
     }
   }
 }
 
 function onItemDone(id, outputPath) {
-  const item = queue.find(i => i.id === id);
+  const item = queue.find((i) => i.id === id);
   if (item) item.status = "done";
   outputPaths[id] = outputPath;
   const main = document.querySelector(`#${id} .qi-main`);
@@ -342,20 +335,58 @@ function onItemDone(id, outputPath) {
     const name = outputPath.split(/[/\\]/).pop();
     sr.innerHTML = `
       <span class="chip chip-done">✓ Done</span>
-      <button class="qi-file-link" onclick="openOutputFile('${id}')" title="${esc(outputPath)}">${esc(name)}</button>`;
+      <button class="qi-file-link" id="${id}-outlink" onclick="openOutputFile('${id}')" title="${esc(outputPath)}">${esc(name)}</button>
+      <button class="qi-rename-btn" onclick="renameFile('${id}')" title="Rename output file">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>`;
   }
-  document.querySelectorAll(`#${id} .qi-btn`).forEach(b => b.disabled = false);
+  document
+    .querySelectorAll(`#${id} .qi-btn`)
+    .forEach((b) => (b.disabled = false));
   processNext();
 }
 
+async function renameFile(id) {
+  const oldPath = outputPaths[id];
+  if (!oldPath) return;
+
+  const oldName = oldPath.split(/[/\\]/).pop();
+  const dotIdx = oldName.lastIndexOf(".");
+  const ext = dotIdx > 0 ? oldName.substring(dotIdx) : "";
+  const stem = dotIdx > 0 ? oldName.substring(0, dotIdx) : oldName;
+
+  const newStem = prompt("Enter new filename:", stem);
+  if (!newStem || newStem.trim() === "" || newStem.trim() === stem) return;
+
+  const newName = newStem.trim() + ext;
+  try {
+    const newPath = await pywebview.api.rename_file(oldPath, newName);
+    if (newPath) {
+      outputPaths[id] = newPath;
+      const link = document.getElementById(`${id}-outlink`);
+      if (link) {
+        link.textContent = newName;
+        link.title = newPath;
+      }
+    }
+  } catch (e) {
+    alert("Rename failed: " + (e.message || e));
+  }
+}
+
 function onItemError(id, msg) {
-  const item = queue.find(i => i.id === id);
+  const item = queue.find((i) => i.id === id);
   if (item) item.status = "error";
   const main = document.querySelector(`#${id} .qi-main`);
   if (main) main.style.removeProperty("--row-progress");
   const sr = document.getElementById(`${id}-status`);
-  if (sr) sr.innerHTML = `<span class="chip chip-error">✗ Error</span><span style="font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px" title="${esc(msg)}">${esc(msg)}</span>`;
-  document.querySelectorAll(`#${id} .qi-btn`).forEach(b => b.disabled = false);
+  if (sr)
+    sr.innerHTML = `<span class="chip chip-error">✗ Error</span><span style="font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px" title="${esc(msg)}">${esc(msg)}</span>`;
+  document
+    .querySelectorAll(`#${id} .qi-btn`)
+    .forEach((b) => (b.disabled = false));
   processNext();
 }
 
@@ -372,49 +403,49 @@ function revealSourceFile(path) {
 // TRIM MODAL
 // ════════════════════════════════════════
 
-let trimItemId        = null;
-let trimDuration      = 0;
-let trimIn            = 0;
-let trimOut           = 0;
-let trimDragging      = null;  // 'in' | 'out' | null
-let trimAudioTracks   = [];
-let trimEnabledTracks = null;  // null = all, or Set of indices (export selection)
-let trimPreviewTmp    = null;  // temp file path created for mixed-audio preview
+let trimItemId = null;
+let trimDuration = 0;
+let trimIn = 0;
+let trimOut = 0;
+let trimDragging = null; // 'in' | 'out' | null
+let trimAudioTracks = [];
+let trimEnabledTracks = null; // null = all, or Set of indices (export selection)
+let trimPreviewTmp = null; // temp file path created for mixed-audio preview
 
-const trimVideo   = document.getElementById("trimVideo");
-const tlTrack     = document.getElementById("tlTrack");
-const tlHandleIn  = document.getElementById("tlHandleIn");
+const trimVideo = document.getElementById("trimVideo");
+const tlTrack = document.getElementById("tlTrack");
+const tlHandleIn = document.getElementById("tlHandleIn");
 const tlHandleOut = document.getElementById("tlHandleOut");
-const tlPlayhead  = document.getElementById("tlPlayhead");
+const tlPlayhead = document.getElementById("tlPlayhead");
 const tlSelection = document.getElementById("tlSelection");
 
 async function openTrimModal(id) {
-  const item = queue.find(i => i.id === id);
+  const item = queue.find((i) => i.id === id);
   if (!item) return;
 
   trimItemId = id;
-  trimIn     = item.trimStart ? parseTimeJS(item.trimStart) : 0;
-  trimOut    = item.trimEnd   ? parseTimeJS(item.trimEnd)   : -1;  // -1 = end (resolved after metadata)
-  trimAudioTracks   = item.audioTracks || [];
+  trimIn = item.trimStart ? parseTimeJS(item.trimStart) : 0;
+  trimOut = item.trimEnd ? parseTimeJS(item.trimEnd) : -1; // -1 = end (resolved after metadata)
+  trimAudioTracks = item.audioTracks || [];
   trimEnabledTracks = item.enabledTracks ? new Set(item.enabledTracks) : null;
 
   document.getElementById("trimModalTitle").textContent = item.name;
 
   // Reset UI to loading state — avoids showing stale -1:-1 values
-  document.getElementById("trimTotalTime").textContent   = "–:––";
+  document.getElementById("trimTotalTime").textContent = "–:––";
   document.getElementById("trimCurrentTime").textContent = "0:00.000";
-  document.getElementById("trimInInput").value           = "";
-  document.getElementById("trimOutInput").value          = "";
+  document.getElementById("trimInInput").value = "";
+  document.getElementById("trimOutInput").value = "";
   document.getElementById("trimVideoError").classList.remove("show");
 
   // Reset timeline
   trimDuration = 0;
-  tlHandleIn.style.left  = "0%";
+  tlHandleIn.style.left = "0%";
   tlHandleOut.style.left = "100%";
-  tlSelection.style.left  = "0%";
+  tlSelection.style.left = "0%";
   tlSelection.style.width = "100%";
-  tlPlayhead.style.left   = "0%";
-  document.getElementById("tlLabelIn").textContent  = "0:00";
+  tlPlayhead.style.left = "0%";
+  document.getElementById("tlLabelIn").textContent = "0:00";
   document.getElementById("tlLabelOut").textContent = "–:––";
 
   document.getElementById("trimOverlay").classList.add("open");
@@ -425,13 +456,13 @@ async function openTrimModal(id) {
   // exposes one audio stream natively from a multi-track container).
   trimPreviewTmp = null;
   const result = await pywebview.api.get_mixed_preview_url(item.path);
-  trimPreviewTmp = result.tmp;   // null if single-track or fallback
+  trimPreviewTmp = result.tmp; // null if single-track or fallback
   trimVideo.src = result.url;
   trimVideo.load();
 
   // Fetch audio tracks if not yet loaded
   if (trimAudioTracks.length === 0) {
-    pywebview.api.get_audio_tracks(item.path).then(tracks => {
+    pywebview.api.get_audio_tracks(item.path).then((tracks) => {
       trimAudioTracks = tracks;
       item.audioTracks = tracks;
       renderAudioTracks();
@@ -442,16 +473,18 @@ async function openTrimModal(id) {
 }
 
 trimVideo.addEventListener("loadedmetadata", () => {
-  trimDuration = isFinite(trimVideo.duration) && trimVideo.duration > 0
-    ? trimVideo.duration
-    : 0;
+  trimDuration =
+    isFinite(trimVideo.duration) && trimVideo.duration > 0
+      ? trimVideo.duration
+      : 0;
 
   if (trimOut < 0 || trimOut > trimDuration) trimOut = trimDuration;
-  if (trimIn  > trimDuration)                trimIn  = 0;
+  if (trimIn > trimDuration) trimIn = 0;
 
-  document.getElementById("trimTotalTime").textContent   = fmtTimeFull(trimDuration);
-  document.getElementById("trimInInput").value           = fmtTimeFull(trimIn);
-  document.getElementById("trimOutInput").value          = fmtTimeFull(trimOut);
+  document.getElementById("trimTotalTime").textContent =
+    fmtTimeFull(trimDuration);
+  document.getElementById("trimInInput").value = fmtTimeFull(trimIn);
+  document.getElementById("trimOutInput").value = fmtTimeFull(trimOut);
   document.getElementById("trimVideoError").classList.remove("show");
   updateTimeline();
   seekTrimVideo(trimIn);
@@ -466,7 +499,7 @@ trimVideo.addEventListener("timeupdate", () => {
   const t = trimVideo.currentTime;
   document.getElementById("trimCurrentTime").textContent = fmtTimeFull(t);
   if (trimDuration > 0) {
-    tlPlayhead.style.left = (t / trimDuration * 100) + "%";
+    tlPlayhead.style.left = (t / trimDuration) * 100 + "%";
   }
   // Loop within trim range when playing
   if (!trimVideo.paused && t >= trimOut - 0.05) {
@@ -474,7 +507,7 @@ trimVideo.addEventListener("timeupdate", () => {
   }
 });
 
-trimVideo.addEventListener("play",  updatePlayBtn);
+trimVideo.addEventListener("play", updatePlayBtn);
 trimVideo.addEventListener("pause", updatePlayBtn);
 
 function updatePlayBtn() {
@@ -488,10 +521,11 @@ function updatePlayBtn() {
 
 function showPlayOverlay(type) {
   const overlay = document.getElementById("trimPlayOverlay");
-  const icon    = document.getElementById("trimPlayOverlayIcon");
-  icon.innerHTML = type === "play"
-    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M5 3l14 9-14 9V3z"/></svg>'
-    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+  const icon = document.getElementById("trimPlayOverlayIcon");
+  icon.innerHTML =
+    type === "play"
+      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M5 3l14 9-14 9V3z"/></svg>'
+      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
   overlay.classList.add("show");
   setTimeout(() => overlay.classList.remove("show"), 500);
 }
@@ -507,7 +541,10 @@ function toggleTrimPlay() {
 }
 
 function skipVideo(secs) {
-  trimVideo.currentTime = Math.max(0, Math.min(trimDuration, trimVideo.currentTime + secs));
+  trimVideo.currentTime = Math.max(
+    0,
+    Math.min(trimDuration, trimVideo.currentTime + secs),
+  );
 }
 
 function seekTrimVideo(t) {
@@ -521,12 +558,12 @@ function getTrackFrac(e) {
   return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
 }
 
-tlTrack.addEventListener("pointerdown", e => {
+tlTrack.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   tlTrack.setPointerCapture(e.pointerId);
   if (trimDuration <= 0) return;
-  const frac    = getTrackFrac(e);
-  const inFrac  = trimIn  / trimDuration;
+  const frac = getTrackFrac(e);
+  const inFrac = trimIn / trimDuration;
   const outFrac = trimOut / trimDuration;
   const hitZone = 0.03;
 
@@ -541,7 +578,7 @@ tlTrack.addEventListener("pointerdown", e => {
   }
 });
 
-tlTrack.addEventListener("pointermove", e => {
+tlTrack.addEventListener("pointermove", (e) => {
   if (!trimDragging) return;
   const t = getTrackFrac(e) * trimDuration;
   if (trimDragging === "in") {
@@ -567,23 +604,24 @@ tlTrack.addEventListener("pointerup", () => {
 
 function updateTimeline() {
   if (trimDuration <= 0) return;
-  const inPct  = (trimIn  / trimDuration * 100).toFixed(3) + "%";
-  const outPct = (trimOut / trimDuration * 100).toFixed(3) + "%";
-  tlHandleIn.style.left  = inPct;
+  const inPct = ((trimIn / trimDuration) * 100).toFixed(3) + "%";
+  const outPct = ((trimOut / trimDuration) * 100).toFixed(3) + "%";
+  tlHandleIn.style.left = inPct;
   tlHandleOut.style.left = outPct;
-  tlSelection.style.left  = inPct;
-  tlSelection.style.width = ((trimOut - trimIn) / trimDuration * 100).toFixed(3) + "%";
+  tlSelection.style.left = inPct;
+  tlSelection.style.width =
+    (((trimOut - trimIn) / trimDuration) * 100).toFixed(3) + "%";
   updateTimelineLabels();
 }
 
 function updateTimelineLabels() {
-  document.getElementById("tlLabelIn").textContent  = fmtTimeShort(trimIn);
+  document.getElementById("tlLabelIn").textContent = fmtTimeShort(trimIn);
   document.getElementById("tlLabelOut").textContent = fmtTimeShort(trimOut);
 }
 
 // ── Trim input fields ─────────────────────────────────────────────
 
-document.getElementById("trimInInput").addEventListener("change", e => {
+document.getElementById("trimInInput").addEventListener("change", (e) => {
   const t = parseTimeJS(e.target.value);
   if (t !== null && t >= 0 && t < trimOut) {
     trimIn = Math.max(0, t);
@@ -595,7 +633,7 @@ document.getElementById("trimInInput").addEventListener("change", e => {
   }
 });
 
-document.getElementById("trimOutInput").addEventListener("change", e => {
+document.getElementById("trimOutInput").addEventListener("change", (e) => {
   const t = parseTimeJS(e.target.value);
   if (t !== null && t > trimIn) {
     trimOut = Math.min(trimDuration, t);
@@ -608,10 +646,10 @@ document.getElementById("trimOutInput").addEventListener("change", e => {
 });
 
 // Allow text selection inside inputs
-["trimInInput", "trimOutInput"].forEach(id => {
+["trimInInput", "trimOutInput"].forEach((id) => {
   const el = document.getElementById(id);
-  el.addEventListener("click",     e => e.stopPropagation());
-  el.addEventListener("mousedown", e => e.stopPropagation());
+  el.addEventListener("click", (e) => e.stopPropagation());
+  el.addEventListener("mousedown", (e) => e.stopPropagation());
 });
 
 function setPointToCurrent(which) {
@@ -632,7 +670,7 @@ function setPointToCurrent(which) {
 
 function renderAudioTracks() {
   const section = document.getElementById("trimAudioSection");
-  const list    = document.getElementById("trimTrackList");
+  const list = document.getElementById("trimTrackList");
 
   if (!trimAudioTracks || trimAudioTracks.length === 0) {
     section.style.display = "none";
@@ -641,16 +679,20 @@ function renderAudioTracks() {
   section.style.display = "";
   list.innerHTML = "";
 
-  trimAudioTracks.forEach(track => {
-    const exportEnabled = trimEnabledTracks === null || trimEnabledTracks.has(track.index);
+  trimAudioTracks.forEach((track) => {
+    const exportEnabled =
+      trimEnabledTracks === null || trimEnabledTracks.has(track.index);
     // Filter out uninformative "und" (undetermined) language tag
-    const parts = [track.codec, track.channels,
-                   (track.language && track.language !== "und") ? track.language : null,
-                   track.title].filter(Boolean);
-    const meta  = parts.join(" · ");
+    const parts = [
+      track.codec,
+      track.channels,
+      track.language && track.language !== "und" ? track.language : null,
+      track.title,
+    ].filter(Boolean);
+    const meta = parts.join(" · ");
 
     const row = document.createElement("div");
-    row.className     = "trim-track" + (exportEnabled ? " on" : "");
+    row.className = "trim-track" + (exportEnabled ? " on" : "");
     row.dataset.index = track.index;
     row.innerHTML = `
       <div class="trim-track-check">
@@ -664,16 +706,22 @@ function renderAudioTracks() {
     row.addEventListener("click", () => {
       const idx = parseInt(row.dataset.index);
       if (trimEnabledTracks === null) {
-        trimEnabledTracks = new Set(trimAudioTracks.map(t => t.index).filter(i => i !== idx));
+        trimEnabledTracks = new Set(
+          trimAudioTracks.map((t) => t.index).filter((i) => i !== idx),
+        );
       } else {
         if (trimEnabledTracks.has(idx)) {
           trimEnabledTracks.delete(idx);
         } else {
           trimEnabledTracks.add(idx);
-          if (trimEnabledTracks.size === trimAudioTracks.length) trimEnabledTracks = null;
+          if (trimEnabledTracks.size === trimAudioTracks.length)
+            trimEnabledTracks = null;
         }
       }
-      row.classList.toggle("on", trimEnabledTracks === null || trimEnabledTracks.has(idx));
+      row.classList.toggle(
+        "on",
+        trimEnabledTracks === null || trimEnabledTracks.has(idx),
+      );
     });
 
     list.appendChild(row);
@@ -683,40 +731,50 @@ function renderAudioTracks() {
 // ── Apply / close ─────────────────────────────────────────────────
 
 function applyTrim() {
-  const item = queue.find(i => i.id === trimItemId);
-  if (!item) { closeTrimModal(); return; }
+  const item = queue.find((i) => i.id === trimItemId);
+  if (!item) {
+    closeTrimModal();
+    return;
+  }
 
-  const inIsZero = trimIn  <= 0.001;
+  const inIsZero = trimIn <= 0.001;
   const outIsEnd = Math.abs(trimOut - trimDuration) <= 0.1;
 
-  item.trimStart     = inIsZero ? "" : fmtTimeFull(trimIn);
-  item.trimEnd       = outIsEnd ? "" : fmtTimeFull(trimOut);
-  item.enabledTracks = trimEnabledTracks === null ? null : [...trimEnabledTracks];
-  item.audioTracks   = trimAudioTracks;
+  item.trimStart = inIsZero ? "" : fmtTimeFull(trimIn);
+  item.trimEnd = outIsEnd ? "" : fmtTimeFull(trimOut);
+  item.enabledTracks =
+    trimEnabledTracks === null ? null : [...trimEnabledTracks];
+  item.audioTracks = trimAudioTracks;
 
   const statusRow = document.getElementById(`${trimItemId}-status`);
-  const badge     = statusRow?.querySelector(".qi-trim-badge");
-  const hasTrim         = !inIsZero || !outIsEnd;
-  const hasTrackFilter  = trimEnabledTracks !== null;
+  const badge = statusRow?.querySelector(".qi-trim-badge");
+  const hasTrim = !inIsZero || !outIsEnd;
+  const hasTrackFilter = trimEnabledTracks !== null;
 
   if (hasTrim || hasTrackFilter) {
     const badgeText = [
-      hasTrim       ? `${fmtTimeShort(trimIn)}–${fmtTimeShort(trimOut)}` : null,
-      hasTrackFilter ? `${trimEnabledTracks.size}/${trimAudioTracks.length} tracks` : null,
-    ].filter(Boolean).join(" · ");
+      hasTrim ? `${fmtTimeShort(trimIn)}–${fmtTimeShort(trimOut)}` : null,
+      hasTrackFilter
+        ? `${trimEnabledTracks.size}/${trimAudioTracks.length} tracks`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
 
     if (badge) {
       badge.textContent = badgeText;
     } else {
       const b = document.createElement("span");
-      b.className   = "qi-trim-badge";
+      b.className = "qi-trim-badge";
       b.textContent = badgeText;
       statusRow?.appendChild(b);
     }
     document.getElementById(`${trimItemId}-trimbtn`)?.classList.add("active");
   } else {
     badge?.remove();
-    document.getElementById(`${trimItemId}-trimbtn`)?.classList.remove("active");
+    document
+      .getElementById(`${trimItemId}-trimbtn`)
+      ?.classList.remove("active");
   }
 
   closeTrimModal();
@@ -733,7 +791,7 @@ function closeTrimModal() {
   trimItemId = null;
 }
 
-document.getElementById("trimOverlay").addEventListener("click", e => {
+document.getElementById("trimOverlay").addEventListener("click", (e) => {
   if (e.target === document.getElementById("trimOverlay")) closeTrimModal();
 });
 
@@ -759,7 +817,7 @@ function buildChangelog() {
 
     const ul = document.createElement("ul");
     ul.className = "cl-changes";
-    entry.changes.forEach(c => {
+    entry.changes.forEach((c) => {
       const li = document.createElement("li");
       li.textContent = c;
       ul.appendChild(li);
@@ -784,8 +842,9 @@ function closeChangelog() {
   document.getElementById("changelogOverlay").classList.remove("open");
 }
 
-document.getElementById("changelogOverlay").addEventListener("click", e => {
-  if (e.target === document.getElementById("changelogOverlay")) closeChangelog();
+document.getElementById("changelogOverlay").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("changelogOverlay"))
+    closeChangelog();
 });
 
 // ════════════════════════════════════════
@@ -794,15 +853,17 @@ document.getElementById("changelogOverlay").addEventListener("click", e => {
 
 function fmtTimeFull(s) {
   if (!isFinite(s) || s < 0) return "0:00.000";
-  const m   = Math.floor(s / 60);
+  const m = Math.floor(s / 60);
   const sec = (s % 60).toFixed(3).padStart(6, "0");
   return `${m}:${sec}`;
 }
 
 function fmtTimeShort(s) {
   if (!isFinite(s) || s < 0) return "0:00";
-  const m   = Math.floor(s / 60);
-  const sec = Math.floor(s % 60).toString().padStart(2, "0");
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60)
+    .toString()
+    .padStart(2, "0");
   return `${m}:${sec}`;
 }
 
@@ -811,15 +872,23 @@ function parseTimeJS(s) {
   if (!s) return null;
   const parts = s.split(":");
   try {
-    if (parts.length === 3) return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2]);
-    if (parts.length === 2) return parseInt(parts[0]) * 60 + parseFloat(parts[1]);
+    if (parts.length === 3)
+      return (
+        parseInt(parts[0]) * 3600 +
+        parseInt(parts[1]) * 60 +
+        parseFloat(parts[2])
+      );
+    if (parts.length === 2)
+      return parseInt(parts[0]) * 60 + parseFloat(parts[1]);
     return parseFloat(s);
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 function fmtEta(secs) {
   secs = Math.round(secs);
-  if (secs < 5)  return "Almost done";
+  if (secs < 5) return "Almost done";
   if (secs < 60) return `ETA ${secs}s`;
   return `ETA ${Math.floor(secs / 60)}m ${secs % 60}s`;
 }
@@ -827,7 +896,7 @@ function fmtEta(secs) {
 function setStatus(msg, type) {
   const el = document.getElementById("statusText");
   el.textContent = msg;
-  el.className   = "status-text" + (type ? ` ${type}` : "");
+  el.className = "status-text" + (type ? ` ${type}` : "");
 }
 
 function esc(s) {

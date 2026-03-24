@@ -306,6 +306,37 @@ class Api:
         except Exception:
             pass
 
+    def rename_file(self, old_path, new_name):
+        """Rename a compressed output file. Returns the new full path, or None on failure."""
+        try:
+            if not os.path.isfile(old_path):
+                return None
+            directory = os.path.dirname(old_path)
+            new_path = os.path.join(directory, new_name)
+            if os.path.exists(new_path):
+                return None  # don't overwrite existing files
+            os.rename(old_path, new_path)
+            return new_path
+        except Exception:
+            return None
+
+    def resolve_dropped_path(self, filename):
+        """Attempt to resolve a dropped filename to a full path.
+        pywebview on some backends doesn't expose File.path for drag-and-drop.
+        We search common locations (Desktop, Downloads, Videos, user home)."""
+        home = os.path.expanduser("~")
+        search_dirs = [
+            os.path.join(home, "Desktop"),
+            os.path.join(home, "Downloads"),
+            os.path.join(home, "Videos"),
+            home,
+        ]
+        for d in search_dirs:
+            candidate = os.path.join(d, filename)
+            if os.path.isfile(candidate):
+                return candidate
+        return None
+
     def compress(self, item_id, filepath, target_size_mb, audio_kbps,
                  use_gpu, combine_audio, two_pass, output_dir,
                  format_ext, trim_start, trim_end, enabled_tracks):
