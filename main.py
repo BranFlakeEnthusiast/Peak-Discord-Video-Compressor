@@ -306,6 +306,19 @@ class Api:
         except Exception:
             pass
 
+    def open_url(self, url):
+        """Open a URL in the system default browser."""
+        try:
+            if os.name == "nt":
+                subprocess.Popen(["cmd", "/c", "start", "", url],
+                                 creationflags=cf())
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", url])
+            else:
+                subprocess.Popen(["xdg-open", url])
+        except Exception:
+            pass
+
     def rename_file(self, old_path, new_name):
         """Rename a compressed output file. Returns the new full path, or None on failure."""
         try:
@@ -484,8 +497,8 @@ if __name__ == "__main__":
         title="Peak — Video Compressor",
         url=resource_path("index.html"),
         js_api=api,
-        width=500, height=660,
-        min_size=(420, 500),
+        width=900, height=720,
+        min_size=(600, 550),
         resizable=True,
         background_color="#313338",
         frameless=False
