@@ -1,0 +1,512 @@
+/* ══════════════════════════════════════════
+   TRIM MODAL
+   ══════════════════════════════════════════ */
+
+.trim-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.trim-overlay.open {
+  display: flex;
+}
+
+.trim-card {
+  background: #2b2d31;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - 32px);
+  position: relative;
+}
+
+/* ── Modal header ── */
+
+.trim-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.trim-modal-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trim-modal-close {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background 0.1s,
+    color 0.1s;
+}
+.trim-modal-close:hover {
+  background: rgba(242, 63, 66, 0.2);
+  color: var(--danger);
+}
+
+/* ── Video player ── */
+
+.trim-video-wrap {
+  background: #000;
+  position: relative;
+  flex-shrink: 0;
+  line-height: 0;
+  min-height: 200px; /* reserve space before metadata loads */
+}
+
+.trim-video-wrap video {
+  width: 100%;
+  height: auto;
+  max-height: 380px;
+  min-height: 200px;
+  display: block;
+  object-fit: contain; /* correct aspect ratio, black-letterbox */
+  cursor: pointer;
+  background: #000;
+}
+
+/* error overlay when video can't load */
+.trim-video-error {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: #000;
+  text-align: center;
+  padding: 8px;
+}
+.trim-video-error.show {
+  display: flex;
+}
+
+/* big play overlay on video */
+.trim-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.trim-play-overlay.show {
+  opacity: 1;
+}
+
+.trim-play-overlay-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pop 0.25s ease;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ── Transport controls ── */
+
+.trim-transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  background: #26282b;
+}
+
+.trim-ctrl-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-modifier);
+  color: var(--text-normal);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+  flex-shrink: 0;
+}
+.trim-ctrl-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.trim-ctrl-btn.primary {
+  width: 32px;
+  height: 32px;
+  background: var(--brand);
+  color: white;
+}
+.trim-ctrl-btn.primary:hover {
+  background: var(--brand-hover);
+}
+
+.trim-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-normal);
+  font-family: "Consolas", "Courier New", monospace;
+  white-space: nowrap;
+}
+.trim-time-sep {
+  color: var(--text-muted);
+}
+
+.trim-vol-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.trim-vol-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.trim-vol {
+  width: 60px;
+  height: 4px;
+  cursor: pointer;
+}
+
+/* ── Timeline ── */
+
+.trim-timeline-section {
+  padding: 14px 14px 6px;
+  flex-shrink: 0;
+  background: #26282b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tl-track {
+  position: relative;
+  height: 36px;
+  cursor: crosshair;
+  margin-bottom: 4px;
+  touch-action: none;
+}
+
+.tl-bar {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.tl-selection {
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  background: var(--brand);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.tl-handle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 28px;
+  margin-left: -6px;
+  background: white;
+  border-radius: 3px;
+  cursor: ew-resize;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+.tl-handle::after {
+  content: "";
+  width: 2px;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 1px;
+}
+.tl-handle:hover {
+  background: #e8eaed;
+}
+.tl-handle.dragging {
+  background: #d0d8ff;
+  box-shadow:
+    0 0 0 3px rgba(88, 101, 242, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.tl-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #f0b232;
+  pointer-events: none;
+  border-radius: 1px;
+}
+.tl-playhead::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: #f0b232;
+  border-radius: 50%;
+}
+
+.tl-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: "Consolas", "Courier New", monospace;
+  padding: 0 2px;
+}
+
+/* ── Trim point inputs — 2-row layout to avoid overflow ── */
+
+.trim-inputs-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  background: #26282b;
+}
+
+.trim-point {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.trim-point-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.trim-point-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-normal);
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 12px;
+  padding: 5px 8px;
+  outline: none;
+  transition: border-color 0.15s;
+  user-select: text;
+}
+.trim-point-input:focus {
+  border-color: var(--brand);
+}
+
+/* set-button sits inline with its respective input */
+.trim-set-btn {
+  padding: 4px 7px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg-modifier);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.1s,
+    color 0.1s;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+.trim-set-btn:hover {
+  background: rgba(88, 101, 242, 0.2);
+  color: var(--brand);
+}
+
+/* ── Audio tracks ── */
+
+.trim-audio-section {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  background: #26282b;
+}
+
+.trim-audio-header {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trim-audio-note {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
+.trim-track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trim-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.trim-track:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.trim-track-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: var(--bg-tertiary);
+  border: 1.5px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.trim-track.on .trim-track-check {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+.trim-track-info {
+  flex: 1;
+  min-width: 0;
+}
+.trim-track-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+.trim-track-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* ── Modal footer ── */
+
+.trim-modal-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 14px;
+  background: #232428;
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.trim-modal-footer button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.trim-btn-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-normal);
+}
+.trim-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.trim-btn-apply {
+  background: var(--brand);
+  color: white;
+}
+.trim-btn-apply:hover {
+  background: var(--brand-hover);
+}

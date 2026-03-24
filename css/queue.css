@@ -1,0 +1,283 @@
+/* ════════════════════════════════════════
+   QUEUE — List, Items, Chips
+   ════════════════════════════════════════ */
+
+.queue-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.queue-wrap::-webkit-scrollbar,
+.trim-card::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.queue-wrap::-webkit-scrollbar-track,
+.trim-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+.queue-wrap::-webkit-scrollbar-thumb,
+.trim-card::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+
+.queue-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ── Queue item ───────────────────────────────────────────────────── */
+
+.qi {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+  min-width: 250px; /* prevents excessive squishing */
+}
+
+.qi-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  position: relative;
+}
+
+.qi-main::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--row-progress, 0%);
+  background: rgba(88, 101, 242, 0.1);
+  transition: width 0.4s linear;
+  pointer-events: none;
+}
+
+.qi-thumb {
+  width: 140px;
+  height: 79px;
+  min-height: 60px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qi-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.qi-thumb-placeholder {
+  opacity: 0.3;
+}
+
+.qi-body {
+  flex: 1;
+  min-width: 0;
+}
+.qi-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+  line-height: 1.2;
+}
+
+.qi-name-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: color 0.12s;
+}
+.qi-name-link:hover {
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(88, 101, 242, 0.45);
+}
+
+.qi-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 16px;
+}
+
+.chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+.chip-waiting {
+  background: rgba(148, 155, 164, 0.15);
+  color: var(--text-muted);
+}
+.chip-pass1 {
+  background: rgba(88, 101, 242, 0.2);
+  color: #8d95f8;
+}
+.chip-done {
+  background: rgba(35, 165, 90, 0.2);
+  color: var(--positive);
+}
+.chip-error {
+  background: rgba(242, 63, 66, 0.2);
+  color: var(--danger);
+}
+
+.qi-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.qi-bar-track {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.qi-bar-fill {
+  height: 100%;
+  background: var(--brand);
+  border-radius: 2px;
+  transition: width 0.4s linear;
+  width: 0%;
+}
+.qi-eta {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 52px;
+  text-align: right;
+}
+
+.qi-file-link {
+  font-size: 10px;
+  color: var(--positive);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(35, 165, 90, 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.qi-file-link:hover {
+  text-decoration-color: var(--positive);
+}
+
+.qi-rename-btn {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background 0.1s,
+    color 0.1s;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+.qi-rename-btn:hover {
+  background: rgba(88, 101, 242, 0.15);
+  color: var(--brand);
+}
+
+.qi-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.qi-btn {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.1s,
+    color 0.1s;
+  flex-shrink: 0;
+}
+.qi-btn:hover {
+  background: var(--bg-modifier);
+  color: var(--text-normal);
+}
+.qi-btn.active {
+  color: var(--brand);
+  background: rgba(88, 101, 242, 0.15);
+}
+.qi-btn.remove:hover {
+  background: rgba(242, 63, 66, 0.2);
+  color: var(--danger);
+}
+.qi-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.qi-btn:disabled:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.qi-trim-badge {
+  font-size: 9px;
+  color: var(--brand);
+  background: rgba(88, 101, 242, 0.15);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}

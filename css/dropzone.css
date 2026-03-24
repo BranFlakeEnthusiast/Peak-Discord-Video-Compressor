@@ -1,0 +1,71 @@
+/* ════════════════════════════════════════
+   FFMPEG WARNING & DROP ZONE
+   ════════════════════════════════════════ */
+
+/* ── FFmpeg warning ───────────────────────────────────────────────── */
+
+.ffmpeg-warning {
+  display: none;
+  background: rgba(242, 63, 66, 0.1);
+  border: 1px solid rgba(242, 63, 66, 0.3);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  font-size: 11px;
+  color: var(--danger);
+  margin-bottom: 10px;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.ffmpeg-warning.visible {
+  display: flex;
+}
+
+/* ── Drop zone ────────────────────────────────────────────────────── */
+
+.drop-zone {
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  flex-shrink: 0;
+}
+
+.drop-zone:hover,
+.drop-zone.hover {
+  border-color: var(--brand);
+  background: rgba(88, 101, 242, 0.08);
+}
+
+.drop-zone-icon {
+  width: 34px;
+  height: 34px;
+  background: var(--bg-modifier);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.drop-zone-text h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+}
+.drop-zone-text p {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.drop-zone-text p span {
+  color: var(--brand);
+}
