@@ -1,9 +1,9 @@
-# Peak Video Compressor - v1.5 Changes
+# Trim Modal UI Modernization
 
-## Tasks
-
-- [x] 1. Create `changelog.js` — extract CHANGELOG array from app.js, add v1.5 entry
-- [x] 2. Update `index.html` — add `<script src="changelog.js">` before app.js
-- [x] 3. Update `app.js` — remove CHANGELOG array, fix drag-drop preview, add rename button
-- [x] 4. Update `style.css` — queue thumb min-height, queue-wrap scroll overflow, rename button styles
-- [x] 5. Update `main.py` — add `rename_file` and `resolve_dropped_path` API methods
+- [x] Step 1: Update HTML — wrap time display in container div for styling
+- [ ] Step 2: Update CSS — Transport controls modernization
+- [ ] Step 3: Update CSS — Timeline redesign
+- [ ] Step 4: Update CSS — Trim inputs polish
+- [ ] Step 5: Update CSS — Video player area refinement
+- [ ] Step 6: Update CSS — General polish and transitions
+- [ ] Step 7: Visual verification
