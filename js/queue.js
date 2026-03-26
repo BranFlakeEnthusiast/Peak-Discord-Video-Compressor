@@ -4,10 +4,40 @@
 // Queue management, file browsing, and drag-drop.
 
 // ── File browsing / drag-drop ─────────────────────────────────────
+
+// pywebview fires "pywebviewready" when its JS bridge is fully initialised.
+// We gate open_file_dialog on this event so the promise never hangs silently.
+let _pywebviewReady = false;
+window.addEventListener("pywebviewready", () => { _pywebviewReady = true; });
+
+async function _waitForPywebview(timeoutMs = 5000) {
+  if (_pywebviewReady) return true;
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    window.addEventListener("pywebviewready", () => {
+      clearTimeout(timer);
+      resolve(true);
+    }, { once: true });
+  });
+}
+
 async function browseFiles() {
   if (isRunning) return;
-  const paths = await pywebview.api.open_file_dialog();
-  for (const p of paths) addToQueue(p);
+  const ready = await _waitForPywebview();
+  if (!ready) {
+    setStatus("Could not connect to file dialog — try restarting", "error");
+    return;
+  }
+  let paths;
+  try {
+    paths = await pywebview.api.open_file_dialog();
+  } catch (err) {
+    setStatus("File dialog error: " + (err.message || err), "error");
+    return;
+  }
+  // Normalise: some backends return null/undefined on cancel instead of []
+  if (!Array.isArray(paths)) return;
+  for (const p of paths) if (p) addToQueue(p);
 }
 
 const dz = document.getElementById("dropZone");
@@ -16,22 +46,46 @@ dz.addEventListener("dragover", (e) => {
   dz.classList.add("hover");
 });
 dz.addEventListener("dragleave", () => dz.classList.remove("hover"));
+
+// pywebview exposes a "window.pywebviewdragdrop" event on some backends that
+// carries the resolved file paths directly — this is more reliable than
+// e.dataTransfer.files which can be empty inside a webview.
+window.addEventListener("pywebviewdragdrop", async (e) => {
+  if (isRunning) return;
+  dz.classList.remove("hover");
+  const paths = e.paths || [];
+  const videoExts = /\.(mp4|mkv|mov|avi|webm)$/i;
+  for (const p of paths) {
+    if (videoExts.test(p)) addToQueue(p);
+  }
+});
+
 dz.addEventListener("drop", async (e) => {
   e.preventDefault();
   dz.classList.remove("hover");
   if (isRunning) return;
+
   const files = Array.from(e.dataTransfer.files);
+
+  // If the webview gave us zero files (common on GTK/Qt backends), there is
+  // nothing we can do here — the pywebviewdragdrop handler above will have
+  // already fired with the real paths on those backends.
+  if (files.length === 0) return;
+
   for (const f of files) {
-    // f.path is available in some webview/Electron environments;
-    // fall back to pywebview API to resolve the full path from the filename.
-    let fullPath = f.path;
-    if (!fullPath || fullPath === f.name) {
+    // f.path is a non-standard property injected by pywebview on some backends.
+    // If it's present and looks like an absolute path, use it directly.
+    let fullPath = (f.path && f.path !== f.name) ? f.path : null;
+
+    if (!fullPath) {
+      // Fall back: ask Python to search common directories for this filename.
       try {
         fullPath = await pywebview.api.resolve_dropped_path(f.name);
       } catch (_) {
-        fullPath = f.name;
+        fullPath = null;
       }
     }
+
     if (fullPath) addToQueue(fullPath);
   }
 });

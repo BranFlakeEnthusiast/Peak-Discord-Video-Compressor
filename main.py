@@ -176,10 +176,18 @@ class Api:
         return check_ffmpeg()
 
     def open_file_dialog(self):
-        result = self._window.create_file_dialog(
-            webview.OPEN_DIALOG, allow_multiple=True,
-            file_types=("Video Files (*.mp4;*.mkv;*.mov;*.avi;*.webm)",))
-        return list(result) if result else []
+        try:
+            result = self._window.create_file_dialog(
+                webview.OPEN_DIALOG, allow_multiple=True,
+                file_types=("Video Files (*.mp4;*.mkv;*.mov;*.avi;*.webm)",))
+            # pywebview may return None (cancelled), a tuple, or a list depending
+            # on the backend — normalise everything to a plain list so JS always
+            # receives an array and the promise never hangs.
+            if not result:
+                return []
+            return [p for p in result if p]
+        except Exception:
+            return []
 
     def pick_directory(self):
         result = self._window.create_file_dialog(webview.FOLDER_DIALOG)
@@ -335,19 +343,46 @@ class Api:
 
     def resolve_dropped_path(self, filename):
         """Attempt to resolve a dropped filename to a full path.
-        pywebview on some backends doesn't expose File.path for drag-and-drop.
-        We search common locations (Desktop, Downloads, Videos, user home)."""
+
+        Some pywebview backends pass the full absolute path in the drag event;
+        others pass only the bare filename.  We handle both cases:
+          1. If 'filename' is already an absolute path that exists, return it.
+          2. Otherwise, search common user directories (non-recursively first,
+             then one level of sub-directories) for a matching basename.
+        """
+        # Case 1 — backend already gave us the full path
+        if os.path.isabs(filename) and os.path.isfile(filename):
+            return filename
+
+        # Case 2 — only the bare name was passed; search common locations
+        basename = os.path.basename(filename)  # safe even if it already is a basename
         home = os.path.expanduser("~")
         search_dirs = [
+            home,
             os.path.join(home, "Desktop"),
             os.path.join(home, "Downloads"),
             os.path.join(home, "Videos"),
-            home,
+            os.path.join(home, "Movies"),
+            os.path.join(home, "Documents"),
         ]
+
+        # First pass: check top-level of each directory
         for d in search_dirs:
-            candidate = os.path.join(d, filename)
+            candidate = os.path.join(d, basename)
             if os.path.isfile(candidate):
                 return candidate
+
+        # Second pass: one level of sub-directories (catches nested folders)
+        for d in search_dirs:
+            try:
+                for entry in os.scandir(d):
+                    if entry.is_dir(follow_symlinks=False):
+                        candidate = os.path.join(entry.path, basename)
+                        if os.path.isfile(candidate):
+                            return candidate
+            except PermissionError:
+                pass
+
         return None
 
     def compress(self, item_id, filepath, target_size_mb, audio_kbps,
@@ -501,7 +536,8 @@ if __name__ == "__main__":
         min_size=(600, 550),
         resizable=True,
         background_color="#313338",
-        frameless=False
+        frameless=False,
+        draggable=True,          # enables pywebviewdragdrop events for file drop
     )
     api._window = window
     webview.start(debug=False, func=lambda: window.maximize())
