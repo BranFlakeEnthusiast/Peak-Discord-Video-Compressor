@@ -22,6 +22,7 @@ build.sh         ← Install script for Linux
    - Windows
 	   - Download: https://ffmpeg.org/download.html
 	   - extract → add the `bin/` folder to PATH → restart terminal
+       - Useful tutorial: https://www.youtube.com/watch?v=6sim9aF3g2c&t
    - Linux
 	   - Arch:        `sudo pacman -S ffmpeg`
 	   - Ubuntu:   `sudo apt install ffmpeg`
@@ -48,7 +49,7 @@ Double-click `build.bat`, or run it from a terminal:
 build.bat
 ```
 
-Your `.exe` will appear in the `dist/` folder. Share `Peak.exe` with your friends — they only need FFmpeg installed separately (it can't be bundled due to its license).
+Your `.exe` will appear in the `dist/` folder.
 
 ---
 
